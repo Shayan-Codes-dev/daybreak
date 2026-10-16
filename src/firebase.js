@@ -14,9 +14,12 @@ const firebaseConfig = {
 const requiredConfig = ['apiKey', 'authDomain', 'projectId', 'appId']
 const missingConfig = requiredConfig.filter((key) => !firebaseConfig[key])
 
-if (missingConfig.length > 0) {
-  throw new Error(`Missing Firebase configuration: ${missingConfig.join(', ')}. Add the VITE_FIREBASE_* values to your .env file.`)
-}
+export const firebaseAuthError = missingConfig.length > 0
+  ? `Firebase sign-in is unavailable because these settings are missing: ${missingConfig.map((key) => `VITE_FIREBASE_${key.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase()}`).join(', ')}.`
+  : ''
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
-export const auth = getAuth(app)
+const app = missingConfig.length === 0
+  ? (getApps().length ? getApp() : initializeApp(firebaseConfig))
+  : null
+
+export const auth = app ? getAuth(app) : null

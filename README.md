@@ -25,6 +25,10 @@ npm run dev
 
 Fill in the `VITE_FIREBASE_*` values in `.env` from your Firebase web app configuration. In Firebase Console, enable **Email/Password** and **Google** under Authentication → Sign-in method, and add your local development host (normally `localhost`) under Authentication → Settings → Authorized domains.
 
-Firebase is only used for optional account features; the playground works without signing in. Vite exposes `VITE_` environment values in the browser bundle, so use only Firebase web app configuration values here, never private server credentials. `.env` is ignored by Git.
+### Production deployment
+
+Set the Firebase web app values as build environment variables in your hosting provider's project settings, using the same `VITE_FIREBASE_*` names. Then trigger a new deployment so Vite can include them in the client build. A local `.env` file is not uploaded with the source code, and changing deployment variables does not update an already-built deployment.
+
+If these variables are absent, Daybreak still runs in guest mode; only account sign-in is disabled, and the sign-in dialog explains which Firebase variables are missing. Firebase is only used for optional account features; the playground works without signing in. Vite exposes `VITE_` environment values in the browser bundle, so use only Firebase web app configuration values here, never private server credentials. `.env` is ignored by Git.
 
 Use `npm run build` to create a production build and `npm run lint` to run ESLint.

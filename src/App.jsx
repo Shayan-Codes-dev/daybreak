@@ -11,7 +11,7 @@ import {
   signOut,
   updateProfile,
 } from 'firebase/auth'
-import { auth } from './firebase'
+import { auth, firebaseAuthError } from './firebase'
 import './App.css'
 
 const experiences = [
@@ -186,6 +186,11 @@ function AuthDialog({ onClose, user, onUserChange }) {
     const submittedEmail = String(values.get('email') || '').trim()
 
     try {
+      if (!auth) {
+        setMessage(firebaseAuthError || 'Firebase sign-in is not configured for this deployment.')
+        return
+      }
+
       if (mode === 'reset') {
         await sendPasswordResetEmail(auth, submittedEmail)
         setMessage('Reset link sent. Check your inbox.')
@@ -215,6 +220,10 @@ function AuthDialog({ onClose, user, onUserChange }) {
     setBusy(true)
     setMessage('')
     try {
+      if (!auth) {
+        setMessage(firebaseAuthError || 'Firebase sign-in is not configured for this deployment.')
+        return
+      }
       await setPersistence(auth, browserLocalPersistence)
       const credential = await signInWithPopup(auth, new GoogleAuthProvider())
       onUserChange(credential.user)
@@ -230,6 +239,10 @@ function AuthDialog({ onClose, user, onUserChange }) {
     setBusy(true)
     setMessage('')
     try {
+      if (!auth) {
+        setMessage(firebaseAuthError || 'Firebase sign-in is not configured for this deployment.')
+        return
+      }
       await signOut(auth)
       onUserChange(null)
       onClose()
@@ -251,6 +264,14 @@ function AuthDialog({ onClose, user, onUserChange }) {
             <p className="dialog-description">{user.email || 'Signed in with Google'}</p>
             {message && <div className="notice error-notice" role="alert">{message}</div>}
             <button className="auth-submit" type="button" onClick={signOutAccount} disabled={busy}>{busy ? 'Signing out…' : 'Sign out'}</button>
+          </>
+        ) : !auth ? (
+          <>
+            <div className="dialog-kicker">GUEST MODE IS READY</div>
+            <h2 id="auth-title">Play without an account.</h2>
+            <p className="dialog-description">All Daybreak experiences are available to guests. Account sign-in can be enabled by adding Firebase’s public web-app configuration to your hosting provider and rebuilding the deployment.</p>
+            <div className="notice error-notice" role="status">{firebaseAuthError || 'Firebase sign-in is not configured for this deployment.'}</div>
+            <p className="firebase-setup-note">Add the <code>VITE_FIREBASE_*</code> variables in your hosting project’s environment settings, then trigger a fresh deployment. Local <code>.env</code> files are not uploaded to production.</p>
           </>
         ) : (
           <>
@@ -537,7 +558,7 @@ function App() {
   const initialCity = initialParams.get('city')
   const initialDay = initialParams.get('day')
   const [user, setUser] = useState(null)
-  const [authLoading, setAuthLoading] = useState(true)
+  const [authLoading, setAuthLoading] = useState(Boolean(auth))
   const [authOpen, setAuthOpen] = useState(false)
   const [selectedExperience, setSelectedExperience] = useState(() => (
     initialParams.get('challenge') === 'city-match' && cityResults[initialCity] ? 'city-match' : ''
@@ -561,10 +582,14 @@ function App() {
     return getSavedFavorites()
   })
 
-  useEffect(() => onAuthStateChanged(auth, (currentUser) => {
-    setUser(currentUser)
-    setAuthLoading(false)
-  }, () => setAuthLoading(false)), [])
+  useEffect(() => {
+    if (!auth) return undefined
+
+    return onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser)
+      setAuthLoading(false)
+    }, () => setAuthLoading(false))
+  }, [])
 
   useEffect(() => {
     if (!selectedExperience && !dailyOpen) return undefined
